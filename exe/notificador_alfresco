@@ -1,0 +1,71 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'alfresco_bcm_utils'
+
+parametros = {}
+OptionParser.new do |opts|
+  opts.banner = %q{
+    notificador_alfresco: Comando para listar y notificar por correo electrónico los documentos que se encuentran vencidos
+  }
+
+  opts.on("--prueba-correo", "Verificar que el motor de envío de correos funciona enviando un correo electrónico") do
+    parametros[:modo] = :prueba_correo
+  end
+
+  opts.on("--docs-vigentes", "Listar los documentos que se encuentran vigentes a la presente fecha") do
+    parametros[:modo] = :listar_documentos_vigentes
+  end
+
+  opts.on("--docs-sin-vigencia", "Listar los documentos que no poseen la cantidad de meses de vigencia en la metadata") do
+    parametros[:modo] = :listar_documentos_sin_vigencia
+  end
+
+  opts.on("--docs-por-vencerse", "Listar los documentos que le quedan #{AlfrescoBcmUtils::ConfiguracionAlfresco.dias_para_vencer_documento} días o menos para vencerse") do
+    parametros[:modo] = :listar_documentos_por_vencerse
+  end
+
+  opts.on("--docs-vencidos", "Listar los documentos que se encuentran vencidos a la presente fecha") do
+    parametros[:modo] = :listar_documentos_vencidos
+  end
+
+  opts.on("--docs-todos", "Listar todos los documentos con metadatabod al día de hoy") do
+    parametros[:modo] = :listar_documentos_todos
+  end
+
+  opts.on("--nd", "Notificar por correo electrónico los documento vencidos o por vencerse a la presente fecha") do
+    parametros[:modo] = :notificar_documentos_vencidos
+  end
+
+  # ---------------------------------------------------------------------------------------------------------------------
+  opts.on("--lc CONFIGURACION", "Listar los valores de los parámetros de alfresco o correo. Ej: --lc alfresco  / --lc  correo") do |configuracion|
+    unless ['alfresco', 'correo'].include?(configuracion)
+      puts "Debe indicar: --lc alfresco  o  --lc correo"
+      exit(1)
+    end
+    parametros[:listar_configuracion] = configuracion.to_sym
+  end
+
+  opts.on("--ac CONFIGURACION", "Establecer que parámetro de configuración se va a establecer. Ej: --ac alfresco  / --ac  correo") do |configuracion|
+    unless ['alfresco', 'correo'].include?(configuracion)
+      puts "Debe indicar: --ac alfresco  o  --ac correo"
+      exit(1)
+    end
+    parametros[:actualizar_configuracion] = configuracion
+  end
+
+  opts.on("-p PARAMETRO", "Indicar el parámetro a actualizar:") do |parametro|
+    parametros[:parametro] = parametro
+  end
+
+  opts.on("-v VALOR", "Indicar el valor del campo a actualizar:") do |valor|
+    parametros[:valor] = valor
+  end
+
+end.parse!
+
+if parametros[:actualizar_configuracion] and (parametros[:parametro].nil? or parametros[:valor].nil?)
+  puts "Debe indicar las dos opciones '-p' y '-v'"
+  exit(1)
+end
+
+AlfrescoBcmUtils.procesar_parametros(parametros)
